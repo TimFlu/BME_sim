@@ -1,0 +1,30 @@
+.grid-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr; /* 4 columns */
+    gap: 10px;
+    height: 100vh;
+    padding: 10px;
+  }
+  
+  .column {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  
+  #image-container {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  #image-a, #image-b {
+    width: 100%;
+    object-fit: contain;
+  }
+  
+  input[type="range"] {
+    width: 100%;
+    margin-top: 10px;
+  }
+  

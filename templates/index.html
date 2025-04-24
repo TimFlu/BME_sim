@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Simulation Viewer</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 10px;
+      padding: 10px;
+    }
+
+    .column {
+      display: flex;
+      flex-direction: column;
+      height: 60%;
+      border: 1px solid #ccc;
+      padding: 10px;
+    }
+
+    #image-container {
+      position: relative;
+      flex-grow: 1;
+    }
+
+    #image-a,
+    #image-b {
+      position: absolute;
+      left: 0;
+      width: 100%;
+      object-fit: contain;
+      transition: height 0.2s ease;
+    }
+
+    #image-a {
+      top: 0;
+    }
+
+    #image-b {
+      bottom: 0;
+    }
+
+    #slider-container {
+      margin-top: 10px;
+    }
+
+    #slider-value {
+      margin-top: 5px;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    input[type="range"] {
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Column 1 -->
+  <div class="column" id="column-1">
+    <div id="image-container">
+      <img id="image-a" src="/static/img/ct_a.png" alt="CT A">
+      <img id="image-b" src="/static/img/ct_b.png" alt="CT B">
+    </div>
+    <div id="slider-container">
+      <input type="range" min="0" max="100" value="50" id="ratio-slider" oninput="adjustImageRatio()">
+      <div id="slider-value">Top Image: 50%</div>
+    </div>
+  </div>
+
+  
+<!-- Column 2: Model image and Forward Pass button -->
+<div class="column" id="column-2" style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
+    <img src="/static/img/model.png" alt="Model Image" style="max-width: 100%; max-height: 70%; object-fit: contain;">
+    <button onclick="runForwardPass()" style="margin-top: 20px; padding: 10px 20px;">Forward Pass</button>
+</div>
+  
+    
+<!-- Column 3: Simulation output figure -->
+<div class="column" id="column-3" style="justify-content: center; align-items: center;">
+    <img id="sim-output" src="/static/img/placeholder.png" alt="Simulation Output" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+</div>
+
+<!-- Column 4: Accumulating points figure -->
+<div class="column" id="column-4" style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+    <img id="accumulated-output" src="/static/img/accumulated.png" alt="Accumulated Output"
+         style="max-width: 100%; max-height: 100%; object-fit: contain; margin-bottom: 10px;">
+    <button onclick="refreshPlot()" style="padding: 6px 16px;">Refresh</button>
+</div>
+  
+
+  <script>
+
+function runForwardPass() {
+  const sliderValue = parseInt(document.getElementById("ratio-slider").value);
+
+  fetch("/run_simulation", {
+    method: "POST",
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ slider_value: sliderValue })
+  })
+  .then(res => res.json())
+  .then(() => {
+    // Update simulation output image (column 3)
+    document.getElementById("sim-output").src = "/static/img/generated.png?t=" + new Date().getTime();
+
+    // ✅ Update accumulated output image (column 4)
+    document.getElementById("accumulated-output").src = "/static/img/accumulated.png?t=" + new Date().getTime();
+  });
+}
+
+function refreshPlot() {
+    fetch("/reset_accumulated", { method: "POST" })
+      .then(() => {
+        document.getElementById("accumulated-output").src = "/static/img/accumulated.png?t=" + new Date().getTime();
+      });
+  }
+
+    function adjustImageRatio() {
+      const sliderValue = parseInt(document.getElementById("ratio-slider").value);
+      const container = document.getElementById("image-container");
+      const height = container.clientHeight;
+
+      const imgA = document.getElementById("image-a");
+      const imgB = document.getElementById("image-b");
+      const sliderLabel = document.getElementById("slider-value");
+
+      const heightA = height * (sliderValue / 100);
+      const heightB = height - heightA;
+
+      imgA.style.height = `${heightA}px`;
+      imgB.style.height = `${heightB}px`;
+
+      sliderLabel.textContent = `Top Image: ${sliderValue}%, Bottom Image: ${100 - sliderValue}%`;
+    }
+
+    window.onload = adjustImageRatio;
+    window.onresize = adjustImageRatio; // Optional: keep responsive on resize
+  </script>
+
+</body>
+</html>
