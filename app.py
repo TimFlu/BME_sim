@@ -1,9 +1,9 @@
 from flask import Flask, render_template, request, jsonify
 import matplotlib.pyplot as plt
+from matplotlib import lines as mlines
 import numpy as np
 import os
 import pickle as pkl
-import plotly.express as px
 import pandas as pd
 import sys
 sys.path.append('/storage/homefs/tf24s166/code/BME_viz/') 
@@ -92,56 +92,39 @@ def run_simulation():
             all_estimated_metrics[metric].append(estimated_metrics[metric])
         else:
             continue
-    
-    df = pd.DataFrame({
-        'Realized': [realized_metrics['accuracy'], realized_metrics['bal_accuracy'], realized_metrics['f1_score'], realized_metrics['recall']],
-        'Estimated': [estimated_metrics['accuracy'], estimated_metrics['bal_accuracy'], estimated_metrics['f1_score'], estimated_metrics['recall']]
-    }, index=['Accuracy', 'Balanced Accuracy', 'F1 Score', 'Recall'])
-    
-    fig = px.scatter(
-    df,
-    x='Realized',
-    y='Estimated',
-    text='Metric',
-    color='Metric',
-    title='Realized vs Estimated Metrics (Interactive)',
-    range_x=[0, 1],
-    range_y=[0, 1],
-    labels={'Realized': 'Realized', 'Estimated': 'Estimated'}
-)
 
-    fig.add_shape(
-        type="line",
-        x0=0, y0=0, x1=1, y1=1,
-        line=dict(color="gray", dash="dash"),
-        name="y = x"
-    )
+    # Generate accumulated output plot
+    x = np.linspace(0, 100, 100)
+    y = x
+    with plt.style.context('/storage/homefs/tf24s166/code/BME_viz/data/plot_style.txt'):  # Use the custom style
+        fig, axs = plt.subplots(1, 1, figsize=(10, 10), layout='constrained', sharey=True)    
+        if axs is not np.ndarray:
+            axs = [axs]
 
-    fig.write_html("static/img/accumulated.html", include_plotlyjs='cdn')
-    
-    # # Generate accumulated output plot
-    # x = np.linspace(0, 100, 100)
-    # y = x
-    # with plt.style.context('/storage/homefs/tf24s166/code/BME_viz/data/plot_style.txt'):  # Use the custom style
-    #     fig, axs = plt.subplots(1, 1, figsize=(10, 10), layout='constrained', sharey=True)    
-    #     if axs is not np.ndarray:
-    #         axs = [axs]
+        for ax in axs:
+            ax.set_xlim(0, 1)
+            ax.set_ylim(0, 1)
+            ax.set_xlabel("Realized")
+            ax.set_ylabel("Estimated")
+            ax.plot(x, y, label="y = x", linestyle="--", color="gray")
 
-    #     for ax in axs:
-    #         ax.set_xlim(0, 1)
-    #         ax.set_ylim(0, 1)
-    #         ax.set_xlabel("Realized")
-    #         ax.set_ylabel("Estimated")
-    #         ax.plot(x, y, label="y = x", linestyle="--", color="gray")
+        colors = ['blue', 'orange', 'green', 'red']
+        for i, metric in enumerate(realized_metrics.keys()):
+            axs[0].scatter(realized_metrics[metric], estimated_metrics[metric], s=700, c=colors[i], label=f"Realized {metric}")
+            axs[0].scatter(all_realized_metrics[metric], all_estimated_metrics[metric], s=700, c=colors[i], alpha=0.5)
+        handles = [mlines.Line2D([], [], color='blue', marker='o', markersize=15, linestyle='None', label='Realized Accuracy'),
+                    mlines.Line2D([], [], color='orange', marker='o', markersize=15, linestyle='None', label='Realized Bal Accuracy'),
+                    mlines.Line2D([], [], color='green', marker='o', markersize=15, linestyle='None', label='Realized F1 Score'),
+                    mlines.Line2D([], [], color='red', marker='o', markersize=15,linestyle='None', label='Realized Recall')]
+        labels = ['Accuracy', 'Bal Accuracy', 'F1 Score', 'Recall']
+        fig.legend(handles, labels, loc="upper left", ncols=1, bbox_to_anchor=(0.1, 1),
+            columnspacing=1,  # Adjust the spacing between columns
+            handlelength=2,  # Adjust the length of the legend handles
+            # handleheight=2,  # Adjust the height of the legend handles
+            frameon=False)
 
-    #     colors = ['blue', 'orange', 'green', 'red']
-    #     for i, metric in enumerate(realized_metrics.keys()):
-    #         axs[0].scatter(realized_metrics[metric], estimated_metrics[metric], s=700, c=colors[i], label=f"Realized {metric}")
-    #         axs[0].scatter(all_realized_metrics[metric], all_estimated_metrics[metric], s=700, c=colors[i], alpha=0.5)
-
-        
-    #     fig.savefig("static/img/accumulated.png")
-    #     plt.close()
+        fig.savefig("static/img/accumulated.png")
+        plt.close()
 
 
     return jsonify(success=True)

@@ -25,7 +25,7 @@ function runForwardPass() {
       // Reload column 3 image (simulation)
       document.getElementById("sim-output").src = "/static/img/generated.png?t=" + new Date().getTime();
   
-      // ✅ Reload column 4 image (accumulated plot)
+      // Reload column 4 image (accumulated plot)
       document.getElementById("accumulated-output").src = "/static/img/accumulated.png?t=" + new Date().getTime();
     });
   }

@@ -35,7 +35,7 @@ ytick.labelsize: 16
 
 #### * LEGEND *
 legend.fancybox : False
-legend.fontsize: 10
+legend.fontsize: 25
 
 
 #### * FIGURE *
