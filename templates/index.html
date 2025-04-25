@@ -76,7 +76,7 @@
     </div>
     <div id="slider-container">
       <input type="range" min="0" max="100" value="50" id="ratio-slider" oninput="adjustImageRatio()">
-      <div id="slider-value">Top Image: 50%</div>
+      <div id="slider-value">I.D.: 50%</div>
     </div>
   </div>
 
@@ -145,7 +145,7 @@ function refreshPlot() {
       imgA.style.height = `${heightA}px`;
       imgB.style.height = `${heightB}px`;
 
-      sliderLabel.textContent = `Top Image: ${sliderValue}%, Bottom Image: ${100 - sliderValue}%`;
+      sliderLabel.textContent = `I.D.: ${sliderValue}%, O.O.D.: ${100 - sliderValue}%`;
     }
 
     window.onload = adjustImageRatio;

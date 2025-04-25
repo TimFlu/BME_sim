@@ -45,7 +45,7 @@ def run_simulation():
     nih_test_labels = chexpert_pleural_eff_data['ood1_labs']
 
     # Resample cheXpert and NIH such that their ratio matches the slider value
-    TOTAL_SAMPLES = 1000
+    TOTAL_SAMPLES = 5000
     chexpert_samples = int((slider_value / 100) * TOTAL_SAMPLES)
     nih_samples = int(TOTAL_SAMPLES - chexpert_samples)
     
@@ -65,11 +65,58 @@ def run_simulation():
     combined_probs = np.concatenate((chexpert_probs, nih_probs))
 
     with plt.style.context('/storage/homefs/tf24s166/code/BME_viz/data/plot_style.txt'):  # Use the custom style
-        fig, ax = plt.subplots(1, 1, figsize=(10, 6), layout='constrained', sharey=True)
-        ax.hist(combined_probs[combined_labels == 1], bins=20, alpha=0.5, label='Combined Probabilities')
-        ax.hist(combined_probs[combined_labels == 0], bins=20, alpha=0.5, label='Combined Probabilities')
+        fig, axs = plt.subplots(2, 1, figsize=(12, 15), layout='constrained', sharey=True)
+      
+
+        # Get histogram data
+        bins = np.linspace(0, 1, 21)
+        bin_width = bins[1] - bins[0]
+
+        counts, bin_edges = np.histogram(combined_probs, bins=bins)
+        bin_width = bin_edges[1] - bin_edges[0]
+        bin_lefts = bin_edges[:-1]
+
+        ax = axs[0]
+        # Plot split-color bars
+        for left, count in zip(bin_lefts, counts):
+            color_ = left
+            if left < 0.5:
+                color_ = 1 - left
+            green_height = count * color_
+            red_height = count - green_height
+            ax.bar(left+0.5*bin_width, green_height, width=bin_width, color='green', alpha=0.5)
+            ax.bar(left+0.5*bin_width, red_height, width=bin_width, bottom=green_height, color='red', alpha=0.5)
+        ax.text(0.5, 0.7, 'Estimated Correct and Wrong Predictions', fontsize=30, ha='center', va='center', transform=ax.transAxes)
         ax.set_ylabel("Count")
         ax.set_xlabel("Confidence")
+
+
+        ax = axs[1]
+        # ax.hist(combined_probs[combined_labels == 1], bins=20, alpha=0.5, label='Combined Probabilities')
+        # ax.hist(combined_probs[combined_labels == 0], bins=20, alpha=0.5, label='Combined Probabilities')
+        # # ax.hist(combined_probs, bins=20, alpha=0.5, label='Combined Probabilities')
+        # Plot split-color bars
+        bins = np.linspace(0, 1, 21)
+        bin_width = bins[1] - bins[0] 
+
+        gt_tp, gt_tp_edges = np.histogram(combined_probs[combined_labels == 1], bins=bins)
+        gt_tn, gt_tn_edges = np.histogram(combined_probs[combined_labels == 0], bins=bins)
+
+        true_preds = np.concatenate([gt_tn[:9], gt_tp[9:]])
+        total_counts_per_bin = np.histogram(combined_probs, bins=bins)[0]
+        # print(np.sum((true_preds))/np.sum(total_counts_per_bin))
+        # print(calculate_metrics(combined_labels, combined_probs)['accuracy'])
+
+        bin_lefts = gt_tp_edges[:-1]
+        for left, count, total_counts in zip(bin_lefts, true_preds, total_counts_per_bin):
+            green_height = count
+            red_height = total_counts - green_height
+            ax.bar(left+0.5*bin_width, green_height, width=bin_width, color='green', alpha=0.5)
+            ax.bar(left+0.5*bin_width, red_height, width=bin_width, bottom=green_height, color='red', alpha=0.5)
+        ax.set_ylabel("Count")
+        ax.set_xlabel("Confidence")
+        ax.text(0.5, 0.7, f"Ground Truth", fontsize=30, ha='center', va='center', transform=ax.transAxes)
+
         output_path = os.path.join("static", "img", "generated.png")
         fig.savefig(output_path)
         plt.close()
@@ -140,14 +187,20 @@ def reset_accumulated():
     # Recreate base plot
     x = np.linspace(0, 10, 100)
     y = x
-    plt.figure()
-    plt.plot(x, y, label="y = x", linestyle="--", color="gray")
-    plt.title("Accumulated Points on y = x")
-    plt.xlabel("x")
-    plt.ylabel("y")
-    plt.legend()
-    plt.savefig("static/img/accumulated.png")
-    plt.close()
+    with plt.style.context('/storage/homefs/tf24s166/code/BME_viz/data/plot_style.txt'):  # Use the custom style
+        fig, axs = plt.subplots(1, 1, figsize=(10, 10), layout='constrained', sharey=True)    
+        if axs is not np.ndarray:
+            axs = [axs]
+
+        for ax in axs:
+            ax.set_xlim(0, 1)
+            ax.set_ylim(0, 1)
+            ax.set_xlabel("Realized")
+            ax.set_ylabel("Estimated")
+            ax.plot(x, y, label="y = x", linestyle="--", color="gray")
+
+        fig.savefig("static/img/accumulated.png")
+        plt.close()
 
     return jsonify(success=True)
 
@@ -157,12 +210,20 @@ if __name__ == "__main__":
     plt.figure()
     x = np.linspace(0, 10, 100)
     y = x
-    plt.plot(x, y, label="y = x", linestyle="--", color="gray")
-    plt.title("Accumulated Points on y = x")
-    plt.xlabel("x")
-    plt.ylabel("y")
-    plt.legend()
-    plt.savefig("static/img/accumulated.png")
-    plt.close()
+    with plt.style.context('/storage/homefs/tf24s166/code/BME_viz/data/plot_style.txt'):  # Use the custom style
+        fig, axs = plt.subplots(1, 1, figsize=(10, 10), layout='constrained', sharey=True)    
+        if axs is not np.ndarray:
+            axs = [axs]
+
+        for ax in axs:
+            ax.set_xlim(0, 1)
+            ax.set_ylim(0, 1)
+            ax.set_xlabel("Realized")
+            ax.set_ylabel("Estimated")
+            ax.plot(x, y, label="y = x", linestyle="--", color="gray")
+
+        fig.savefig("static/img/accumulated.png")
+        plt.close()
+
 
     app.run(debug=True)
