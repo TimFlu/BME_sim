@@ -11,8 +11,8 @@ sys.path.append('/storage/homefs/tf24s166/code/BME_viz/')
 from data.utils import *
 
 accumulated_points = []  # in-memory store
-all_realized_metrics = {'accuracy': [], 'bal_accuracy': [], 'f1_score': [], 'recall': []}
-all_estimated_metrics = {'accuracy': [], 'bal_accuracy': [], 'f1_score': [], 'recall': []}
+all_realized_metrics = {'accuracy': [], 'auc': [], 'f1_score': [], 'recall': []}
+all_estimated_metrics = {'accuracy': [], 'auc': [], 'f1_score': [], 'recall': []}
 app = Flask(__name__)
 
 @app.route("/")
@@ -45,7 +45,7 @@ def run_simulation():
     nih_test_labels = chexpert_pleural_eff_data['ood1_labs']
 
     # Resample cheXpert and NIH such that their ratio matches the slider value
-    TOTAL_SAMPLES = 5000
+    TOTAL_SAMPLES = 1000
     chexpert_samples = int((slider_value / 100) * TOTAL_SAMPLES)
     nih_samples = int(TOTAL_SAMPLES - chexpert_samples)
     
@@ -129,8 +129,8 @@ def run_simulation():
     realized_metrics = calculate_metrics(combined_labels, combined_probs)
     estimated_metrics = calculate_CBPE_metrics(combined_probs)
     
-    realized_metrics = {key: realized_metrics[key] for key in ['accuracy', 'bal_accuracy', 'f1_score', 'recall']}
-    estimated_metrics = {key: estimated_metrics[key] for key in ['accuracy', 'bal_accuracy', 'f1_score', 'recall']}    
+    realized_metrics = {key: realized_metrics[key] for key in ['accuracy', 'auc', 'f1_score', 'recall']}
+    estimated_metrics = {key: estimated_metrics[key] for key in ['accuracy', 'auc', 'f1_score', 'recall']}    
 
     # Store the metrics in the global list
     for metric in realized_metrics.keys():
@@ -157,13 +157,13 @@ def run_simulation():
 
         colors = ['blue', 'orange', 'green', 'red']
         for i, metric in enumerate(realized_metrics.keys()):
-            axs[0].scatter(realized_metrics[metric], estimated_metrics[metric], s=700, c=colors[i], label=f"Realized {metric}")
+            axs[0].scatter(realized_metrics[metric], estimated_metrics[metric], s=700, c=colors[i], label=f"Realized {metric}", edgecolors='k', linewidths=3)
             axs[0].scatter(all_realized_metrics[metric], all_estimated_metrics[metric], s=700, c=colors[i], alpha=0.5)
         handles = [mlines.Line2D([], [], color='blue', marker='o', markersize=15, linestyle='None', label='Realized Accuracy'),
-                    mlines.Line2D([], [], color='orange', marker='o', markersize=15, linestyle='None', label='Realized Bal Accuracy'),
+                    mlines.Line2D([], [], color='orange', marker='o', markersize=15, linestyle='None', label='Realized AUC'),
                     mlines.Line2D([], [], color='green', marker='o', markersize=15, linestyle='None', label='Realized F1 Score'),
                     mlines.Line2D([], [], color='red', marker='o', markersize=15,linestyle='None', label='Realized Recall')]
-        labels = ['Accuracy', 'Bal Accuracy', 'F1 Score', 'Recall']
+        labels = ['Accuracy', 'AUC', 'F1 Score', 'Recall']
         fig.legend(handles, labels, loc="upper left", ncols=1, bbox_to_anchor=(0.1, 1),
             columnspacing=1,  # Adjust the spacing between columns
             handlelength=2,  # Adjust the length of the legend handles
@@ -181,9 +181,9 @@ def reset_accumulated():
     global accumulated_points
     accumulated_points = []
     global all_realized_metrics
-    all_realized_metrics = {'accuracy': [], 'bal_accuracy': [], 'f1_score': [], 'recall': []}
+    all_realized_metrics = {'accuracy': [], 'auc': [], 'f1_score': [], 'recall': []}
     global all_estimated_metrics
-    all_estimated_metrics = {'accuracy': [], 'bal_accuracy': [], 'f1_score': [], 'recall': []}
+    all_estimated_metrics = {'accuracy': [], 'auc': [], 'f1_score': [], 'recall': []}
     # Recreate base plot
     x = np.linspace(0, 10, 100)
     y = x
