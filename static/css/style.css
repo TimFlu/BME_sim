@@ -1,30 +1,91 @@
+/* GENERAL STYLES */
+body {
+  margin: 0;
+  height: 100%;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #f0f2f5, #e0e5ec);
+}
+
+/* GRID LAYOUT */
 .grid-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1fr; /* 4 columns */
-    gap: 10px;
-    height: 100vh;
-    padding: 10px;
-  }
-  
-  .column {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-  }
-  
-  #image-container {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-  }
-  
-  #image-a, #image-b {
-    width: 100%;
-    object-fit: contain;
-  }
-  
-  input[type="range"] {
-    width: 100%;
-    margin-top: 10px;
-  }
-  
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr; /* 4 equal columns */
+  gap: 10px;
+  height: 100vh;
+  padding: 10px;
+}
+
+/* COLUMN CARD STYLE */
+.column {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  padding: 20px;
+  overflow: hidden;
+  justify-content: space-between;
+}
+
+/* IMAGE LAYOUT IN COLUMN 1 */
+#image-container {
+  position: relative;
+  flex-grow: 1;
+}
+
+#image-a,
+#image-b {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  object-fit: contain;
+  transition: height 0.2s ease;
+}
+
+#image-a {
+  top: 0;
+}
+
+#image-b {
+  bottom: 0;
+}
+
+/* SLIDER */
+input[type="range"] {
+  width: 100%;
+  margin-top: 10px;
+}
+
+#slider-value {
+  background: #f7f9fc;
+  border-radius: 6px;
+  padding: 6px;
+  font-weight: 500;
+  text-align: center;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+  margin-top: 6px;
+}
+
+/* BUTTONS */
+button {
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s ease;
+}
+
+button:hover {
+  background-color: #3b78c5;
+}
+
+/* IFRAME / IMG RESPONSIVENESS */
+iframe, img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}

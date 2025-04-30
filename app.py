@@ -65,57 +65,103 @@ def run_simulation():
     combined_probs = np.concatenate((chexpert_probs, nih_probs))
 
     with plt.style.context('/storage/homefs/tf24s166/code/BME_viz/data/plot_style.txt'):  # Use the custom style
-        fig, axs = plt.subplots(2, 1, figsize=(12, 15), layout='constrained', sharey=True)
-      
+        fig, axs = plt.subplots(2, 1, figsize=(12, 15), layout='constrained', sharex=True)
+ 
+        # # Get histogram data
+        # bins = np.linspace(0, 1, 21)
+        # bin_width = bins[1] - bins[0]
 
-        # Get histogram data
-        bins = np.linspace(0, 1, 21)
-        bin_width = bins[1] - bins[0]
+        # counts, bin_edges = np.histogram(combined_probs, bins=bins)
+        # bin_width = bin_edges[1] - bin_edges[0]
+        # bin_lefts = bin_edges[:-1]
 
-        counts, bin_edges = np.histogram(combined_probs, bins=bins)
-        bin_width = bin_edges[1] - bin_edges[0]
-        bin_lefts = bin_edges[:-1]
+        # ax = axs[0]
+        # # Plot split-color bars
+        # for left, count in zip(bin_lefts, counts):
+        #     color_ = left
+        #     if left < 0.5:
+        #         color_ = 1 - left
+        #     green_height = count * color_
+        #     red_height = count - green_height
+        #     ax.bar(left+0.5*bin_width, green_height, width=bin_width, color='green', alpha=0.5)
+        #     ax.bar(left+0.5*bin_width, red_height, width=bin_width, bottom=green_height, color='red', alpha=0.5)
+        # ax.text(0.5, 0.7, 'Estimated Correct and Wrong Predictions', fontsize=30, ha='center', va='center', transform=ax.transAxes)
+        # ax.set_ylabel("Count")
+        # ax.set_xlabel("Confidence")
+
 
         ax = axs[0]
+        ax.hist(combined_probs[combined_labels == 1], bins=20, alpha=0.5, color='green', label='Label 1')
+        ax.hist(combined_probs[combined_labels == 0], bins=20, alpha=0.5, color='m', label='Label 0')
+        ax.vlines(x=0.5, ymin=0, ymax=np.max(np.histogram(combined_probs, bins=20)[0]), color='r', linewidth=2 ,linestyle='--', label='Threshold')
+                  
+        # ax.hist(combined_probs, bins=20, alpha=0.5, label='Combined Probabilities')
         # Plot split-color bars
-        for left, count in zip(bin_lefts, counts):
-            color_ = left
-            if left < 0.5:
-                color_ = 1 - left
-            green_height = count * color_
-            red_height = count - green_height
-            ax.bar(left+0.5*bin_width, green_height, width=bin_width, color='green', alpha=0.5)
-            ax.bar(left+0.5*bin_width, red_height, width=bin_width, bottom=green_height, color='red', alpha=0.5)
-        ax.text(0.5, 0.7, 'Estimated Correct and Wrong Predictions', fontsize=30, ha='center', va='center', transform=ax.transAxes)
+        # bins = np.linspace(0, 1, 21)
+        # bin_width = bins[1] - bins[0] 
+
+
+        # gt_tp, gt_tp_edges = np.histogram(combined_probs[combined_labels == 1], bins=bins)
+        # gt_tn, gt_tn_edges = np.histogram(combined_probs[combined_labels == 0], bins=bins)
+
+        # true_preds = np.concatenate([gt_tn[:9], gt_tp[9:]])
+        # total_counts_per_bin = np.histogram(combined_probs, bins=bins)[0]
+        # # print(np.sum((true_preds))/np.sum(total_counts_per_bin))
+        # # print(calculate_metrics(combined_labels, combined_probs)['accuracy'])
+
+        # bin_lefts = gt_tp_edges[:-1]
+        # for left, count, total_counts in zip(bin_lefts, true_preds, total_counts_per_bin):
+        #     green_height = count
+        #     red_height = total_counts - green_height
+        #     ax.bar(left+0.5*bin_width, green_height, width=bin_width, color='green', alpha=0.5)
+        #     ax.bar(left+0.5*bin_width, red_height, width=bin_width, bottom=green_height, color='red', alpha=0.5)
         ax.set_ylabel("Count")
         ax.set_xlabel("Confidence")
+        # ax.text(0.5, 0.7, f"Ground Truth", fontsize=30, ha='center', va='center', transform=ax.transAxes)
+        ax.set_title(f'Confidence Histogram')
+        ax.legend()
 
-
+        # Realiability diagram
         ax = axs[1]
-        # ax.hist(combined_probs[combined_labels == 1], bins=20, alpha=0.5, label='Combined Probabilities')
-        # ax.hist(combined_probs[combined_labels == 0], bins=20, alpha=0.5, label='Combined Probabilities')
-        # # ax.hist(combined_probs, bins=20, alpha=0.5, label='Combined Probabilities')
-        # Plot split-color bars
-        bins = np.linspace(0, 1, 21)
-        bin_width = bins[1] - bins[0] 
+        num_bins = 20
+        rbs = root_brier_score(combined_labels, combined_probs)
+        
 
-        gt_tp, gt_tp_edges = np.histogram(combined_probs[combined_labels == 1], bins=bins)
-        gt_tn, gt_tn_edges = np.histogram(combined_probs[combined_labels == 0], bins=bins)
+        bins = np.linspace(0, 1, num_bins + 1) # Bin edges
+        bin_centers = (bins[:-1] + bins[1:]) / 2 # Bin centers
 
-        true_preds = np.concatenate([gt_tn[:9], gt_tp[9:]])
-        total_counts_per_bin = np.histogram(combined_probs, bins=bins)[0]
-        # print(np.sum((true_preds))/np.sum(total_counts_per_bin))
-        # print(calculate_metrics(combined_labels, combined_probs)['accuracy'])
+        bin_counts = np.zeros(num_bins) # Number of predictions in each bin
+        bin_pos_label = np.zeros(num_bins) # Number of positive predictions in each bin
+        bin_confidence = np.zeros(num_bins) # Mean confidence in each bin
+        
+        for label, pred_conf in zip(combined_labels, combined_probs):
+            bin_idx = np.digitize(pred_conf, bins, right=True) - 1
+            if bin_idx >= num_bins: # Account for edge case
+                bin_idx = num_bins - 1
+            bin_counts[bin_idx] += 1
+            bin_confidence[bin_idx] += pred_conf
+            bin_pos_label[bin_idx] += label
 
-        bin_lefts = gt_tp_edges[:-1]
-        for left, count, total_counts in zip(bin_lefts, true_preds, total_counts_per_bin):
-            green_height = count
-            red_height = total_counts - green_height
-            ax.bar(left+0.5*bin_width, green_height, width=bin_width, color='green', alpha=0.5)
-            ax.bar(left+0.5*bin_width, red_height, width=bin_width, bottom=green_height, color='red', alpha=0.5)
-        ax.set_ylabel("Count")
+        bin_accuracy = np.nan_to_num(bin_pos_label / bin_counts)
+        bin_confidence = np.nan_to_num(bin_confidence / bin_counts)
+        ece = np.sum(bin_counts*np.abs(bin_accuracy - bin_confidence))/np.sum(bin_counts)
+
+        ax.bar(bin_centers, bin_accuracy, width=1/num_bins, color='blue', label='Freq', alpha=0.7)
+        for acc, diag in zip(bin_accuracy, bin_centers):
+            if acc < diag:
+                ax.bar(diag, diag-acc, bottom=acc, width=1/num_bins, color='red', alpha=0.2, hatch='/')
+            else:
+                ax.bar(diag, acc-diag, bottom=diag, width=1/num_bins, color='red', alpha=0.2, hatch='/')
+        ax.plot([0, 1], [0, 1], 'r--', label='Perfect calibration')
+        ax.text(0.8, 0.05, f'ECE={ece:.3f} \n rbs={rbs:.3f}', bbox=dict(facecolor='grey', alpha=0.8, boxstyle='round', edgecolor='black'))
+        # Text amount of samples in each bin
+        # for i, txt in enumerate(bin_counts):
+        #     plt.text(bin_centers[i], bin_accuracy[i]/2, f'{txt:.0f}', ha='center', va='bottom')
+        ax.set_title(f"Reliability Diagram")
         ax.set_xlabel("Confidence")
-        ax.text(0.5, 0.7, f"Ground Truth", fontsize=30, ha='center', va='center', transform=ax.transAxes)
+        ax.set_ylabel("Frequency")
+        ax.legend()
+
 
         output_path = os.path.join("static", "img", "generated.png")
         fig.savefig(output_path)

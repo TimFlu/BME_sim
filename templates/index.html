@@ -11,22 +11,27 @@
     html, body {
       margin: 0;
       height: 100%;
-      font-family: Arial, sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #f0f2f5, #e0e5ec);
     }
 
-    body {
+    .grid-container {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr 1fr;
       gap: 10px;
-      padding: 10px;
+      height: calc(100vh - 90px); /* full height minus 20px top and bottom padding */
+      padding: 30px 10px; /* 20px top/bottom, 10px left/right */
     }
 
     .column {
       display: flex;
       flex-direction: column;
-      height: 60%;
-      border: 1px solid #ccc;
-      padding: 10px;
+      background-color: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+      padding: 20px;
+      overflow: hidden;
+      justify-content: space-between;
     }
 
     #image-container {
@@ -56,79 +61,109 @@
     }
 
     #slider-value {
-      margin-top: 5px;
+      background: #f7f9fc;
+      border-radius: 6px;
+      padding: 6px;
+      font-weight: 500;
       text-align: center;
-      font-weight: bold;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+      margin-top: 6px;
     }
 
     input[type="range"] {
       width: 100%;
+      margin-top: 10px;
+    }
+
+    button {
+      background-color: #4a90e2;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background-color 0.2s ease;
+    }
+
+    button:hover {
+      background-color: #3b78c5;
+    }
+
+    img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
     }
   </style>
 </head>
 <body>
+  <div style="
+  text-align: center;
+  font-size: 48px;
+  font-weight: bold;
+  padding-top: 30px;
+  margin-bottom: 1px;
+">
+  Monitoring Deep Learning Model Performance
+</div>
+  <div class="grid-container">
 
-  <!-- Column 1 -->
-  <div class="column" id="column-1">
-    <div id="image-container">
-      <img id="image-a" src="/static/img/ct_a.png" alt="CT A">
-      <img id="image-b" src="/static/img/ct_b.png" alt="CT B">
+    <!-- Column 1 -->
+    <div class="column" id="column-1">
+      <div id="image-container">
+        <img id="image-a" src="/static/img/ct_a.png" alt="CT A">
+        <img id="image-b" src="/static/img/ct_b.png" alt="CT B">
+      </div>
+      <div id="slider-container">
+        <input type="range" min="0" max="100" value="50" id="ratio-slider" oninput="adjustImageRatio()">
+        <div id="slider-value">Data from Hospital A: 50% <br> Data from Hospital B: 50%</div>
+      </div>
     </div>
-    <div id="slider-container">
-      <input type="range" min="0" max="100" value="50" id="ratio-slider" oninput="adjustImageRatio()">
-      <div id="slider-value">I.D.: 50%</div>
+
+    <!-- Column 2: Model + button -->
+    <div class="column" id="column-2" style="align-items: center; justify-content: center;">
+      <img src="/static/img/model.png" alt="Model Image" style="max-width: 100%; max-height: 70%;">
+      <button onclick="runForwardPass()" style="margin-top: 20px;">Forward Pass</button>
     </div>
+
+    <!-- Column 3: Simulation result -->
+    <div class="column" id="column-3" style="align-items: center; justify-content: center;">
+      <img id="sim-output" src="/static/img/placeholder.png" alt="Simulation Output">
+    </div>
+
+    <!-- Column 4: Accumulated result -->
+    <div class="column" id="column-4" style="align-items: center; justify-content: center;">
+      <img id="accumulated-output" src="/static/img/accumulated.png" alt="Accumulated Output" style="margin-bottom: 10px;">
+      <button onclick="refreshPlot()">Refresh</button>
+    </div>
+
   </div>
 
-  
-<!-- Column 2: Model image and Forward Pass button -->
-<div class="column" id="column-2" style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
-    <img src="/static/img/model.png" alt="Model Image" style="max-width: 100%; max-height: 70%; object-fit: contain;">
-    <button onclick="runForwardPass()" style="margin-top: 20px; padding: 10px 20px;">Forward Pass</button>
-</div>
-  
-    
-<!-- Column 3: Simulation output figure -->
-<div class="column" id="column-3" style="justify-content: center; align-items: center;">
-    <img id="sim-output" src="/static/img/placeholder.png" alt="Simulation Output" style="max-width: 100%; max-height: 100%; object-fit: contain;">
-</div>
-
-<!-- Column 4: Accumulating points figure -->
-<div class="column" id="column-4" style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-    <img id="accumulated-output" src="/static/img/accumulated.png" alt="Accumulated Output"
-         style="max-width: 100%; max-height: 100%; object-fit: contain; margin-bottom: 10px;">
-    <button onclick="refreshPlot()" style="padding: 6px 16px;">Refresh</button>
-</div>
-  
-
   <script>
+    function runForwardPass() {
+      const sliderValue = parseInt(document.getElementById("ratio-slider").value);
 
-function runForwardPass() {
-  const sliderValue = parseInt(document.getElementById("ratio-slider").value);
-
-  fetch("/run_simulation", {
-    method: "POST",
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ slider_value: sliderValue })
-  })
-  .then(res => res.json())
-  .then(() => {
-    // Update simulation output image (column 3)
-    document.getElementById("sim-output").src = "/static/img/generated.png?t=" + new Date().getTime();
-
-    // ✅ Update accumulated output image (column 4)
-    document.getElementById("accumulated-output").src = "/static/img/accumulated.png?t=" + new Date().getTime();
-  });
-}
-
-function refreshPlot() {
-    fetch("/reset_accumulated", { method: "POST" })
+      fetch("/run_simulation", {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ slider_value: sliderValue })
+      })
+      .then(res => res.json())
       .then(() => {
+        document.getElementById("sim-output").src = "/static/img/generated.png?t=" + new Date().getTime();
         document.getElementById("accumulated-output").src = "/static/img/accumulated.png?t=" + new Date().getTime();
       });
-  }
+    }
+
+    function refreshPlot() {
+      fetch("/reset_accumulated", { method: "POST" })
+        .then(() => {
+          document.getElementById("accumulated-output").src = "/static/img/accumulated.png?t=" + new Date().getTime();
+        });
+    }
 
     function adjustImageRatio() {
       const sliderValue = parseInt(document.getElementById("ratio-slider").value);
@@ -145,12 +180,12 @@ function refreshPlot() {
       imgA.style.height = `${heightA}px`;
       imgB.style.height = `${heightB}px`;
 
-      sliderLabel.textContent = `I.D.: ${sliderValue}%, O.O.D.: ${100 - sliderValue}%`;
+      sliderLabel.innerHTML = `Data from Hospital A: ${sliderValue}% <br> Data from Hospital B: ${100 - sliderValue}%`;
+
     }
 
     window.onload = adjustImageRatio;
-    window.onresize = adjustImageRatio; // Optional: keep responsive on resize
+    window.onresize = adjustImageRatio;
   </script>
-
 </body>
 </html>
