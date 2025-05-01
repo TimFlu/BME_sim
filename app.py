@@ -1,12 +1,15 @@
 from flask import Flask, render_template, request, jsonify
 import matplotlib.pyplot as plt
 from matplotlib import lines as mlines
+import matplotlib
+matplotlib.use('Agg')
+
 import numpy as np
 import os
 import pickle as pkl
 import pandas as pd
 import sys
-sys.path.append('/storage/homefs/tf24s166/code/BME_viz/') 
+sys.path.append('/Users/tflueh/Documents/PhD/BME_sim/') 
 
 from data.utils import *
 
@@ -29,7 +32,7 @@ def run_simulation():
 
 
     # Get cheXpert data for I.D. and NIH data for ood
-    PATH_TO_OUTS = '/storage/homefs/tf24s166/code/BME_viz/data/uncal_scores_labs.pkl'
+    PATH_TO_OUTS = '/Users/tflueh/Documents/PhD/BME_sim/data/uncal_scores_labs.pkl'
 
     with open(PATH_TO_OUTS, 'rb') as f:
         uncal_scores_labs = pkl.load(f)
@@ -65,7 +68,7 @@ def run_simulation():
     combined_labels = np.concatenate((chexpert_labels, nih_labels))
     combined_probs = np.concatenate((chexpert_probs, nih_probs))
 
-    with plt.style.context('/storage/homefs/tf24s166/code/BME_viz/data/plot_style.txt'):  # Use the custom style
+    with plt.style.context('/Users/tflueh/Documents/PhD/BME_sim/data/plot_style.txt'):  # Use the custom style
         fig, axs = plt.subplots(2, 1, figsize=(12, 18), layout='constrained', sharex=True)
 
         ax = axs[0]
@@ -147,7 +150,7 @@ def run_simulation():
     # Generate accumulated output plot
     x = np.linspace(0, 100, 100)
     y = x
-    with plt.style.context('/storage/homefs/tf24s166/code/BME_viz/data/plot_style.txt'):  # Use the custom style
+    with plt.style.context('/Users/tflueh/Documents/PhD/BME_sim/data/plot_style.txt'):  # Use the custom style
         fig, axs = plt.subplots(2, 1, figsize=(12, 18), layout='constrained', sharey=False)    
         # if axs is not np.ndarray:
         #     axs = [axs]
@@ -203,7 +206,7 @@ def reset_accumulated():
     # Recreate base plot
     x = np.linspace(0, 10, 100)
     y = x
-    with plt.style.context('/storage/homefs/tf24s166/code/BME_viz/data/plot_style.txt'):  # Use the custom style
+    with plt.style.context('/Users/tflueh/Documents/PhD/BME_sim/data/plot_style.txt'):  # Use the custom style
         fig, axs = plt.subplots(2, 1, figsize=(12, 18), layout='constrained', sharey=False)    
         # if axs is not np.ndarray:
         #     axs = [axs]
@@ -242,7 +245,7 @@ if __name__ == "__main__":
     # initialize empty accumulated plot
     x = np.linspace(0, 10, 100)
     y = x
-    with plt.style.context('/storage/homefs/tf24s166/code/BME_viz/data/plot_style.txt'):  # Use the custom style
+    with plt.style.context('/Users/tflueh/Documents/PhD/BME_sim/data/plot_style.txt'):  # Use the custom style
         fig, axs = plt.subplots(2, 1, figsize=(12, 18), layout='constrained', sharey=False)    
         # if axs is not np.ndarray:
         #     axs = [axs]
@@ -275,4 +278,4 @@ if __name__ == "__main__":
         plt.close()
 
 
-    app.run(debug=True)
+    app.run(debug=True, port=5001)
