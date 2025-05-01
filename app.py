@@ -11,6 +11,7 @@ sys.path.append('/storage/homefs/tf24s166/code/BME_viz/')
 from data.utils import *
 
 accumulated_points = []  # in-memory store
+ece_values = []  # in-memory store
 all_realized_metrics = {'accuracy': [], 'auc': [], 'f1_score': [], 'recall': []}
 all_estimated_metrics = {'accuracy': [], 'auc': [], 'f1_score': [], 'recall': []}
 app = Flask(__name__)
@@ -65,56 +66,12 @@ def run_simulation():
     combined_probs = np.concatenate((chexpert_probs, nih_probs))
 
     with plt.style.context('/storage/homefs/tf24s166/code/BME_viz/data/plot_style.txt'):  # Use the custom style
-        fig, axs = plt.subplots(2, 1, figsize=(12, 15), layout='constrained', sharex=True)
- 
-        # # Get histogram data
-        # bins = np.linspace(0, 1, 21)
-        # bin_width = bins[1] - bins[0]
-
-        # counts, bin_edges = np.histogram(combined_probs, bins=bins)
-        # bin_width = bin_edges[1] - bin_edges[0]
-        # bin_lefts = bin_edges[:-1]
-
-        # ax = axs[0]
-        # # Plot split-color bars
-        # for left, count in zip(bin_lefts, counts):
-        #     color_ = left
-        #     if left < 0.5:
-        #         color_ = 1 - left
-        #     green_height = count * color_
-        #     red_height = count - green_height
-        #     ax.bar(left+0.5*bin_width, green_height, width=bin_width, color='green', alpha=0.5)
-        #     ax.bar(left+0.5*bin_width, red_height, width=bin_width, bottom=green_height, color='red', alpha=0.5)
-        # ax.text(0.5, 0.7, 'Estimated Correct and Wrong Predictions', fontsize=30, ha='center', va='center', transform=ax.transAxes)
-        # ax.set_ylabel("Count")
-        # ax.set_xlabel("Confidence")
-
+        fig, axs = plt.subplots(2, 1, figsize=(12, 18), layout='constrained', sharex=True)
 
         ax = axs[0]
         ax.hist(combined_probs[combined_labels == 1], bins=20, alpha=0.5, color='green', label='Label 1')
         ax.hist(combined_probs[combined_labels == 0], bins=20, alpha=0.5, color='m', label='Label 0')
         ax.vlines(x=0.5, ymin=0, ymax=np.max(np.histogram(combined_probs, bins=20)[0]), color='r', linewidth=2 ,linestyle='--', label='Threshold')
-                  
-        # ax.hist(combined_probs, bins=20, alpha=0.5, label='Combined Probabilities')
-        # Plot split-color bars
-        # bins = np.linspace(0, 1, 21)
-        # bin_width = bins[1] - bins[0] 
-
-
-        # gt_tp, gt_tp_edges = np.histogram(combined_probs[combined_labels == 1], bins=bins)
-        # gt_tn, gt_tn_edges = np.histogram(combined_probs[combined_labels == 0], bins=bins)
-
-        # true_preds = np.concatenate([gt_tn[:9], gt_tp[9:]])
-        # total_counts_per_bin = np.histogram(combined_probs, bins=bins)[0]
-        # # print(np.sum((true_preds))/np.sum(total_counts_per_bin))
-        # # print(calculate_metrics(combined_labels, combined_probs)['accuracy'])
-
-        # bin_lefts = gt_tp_edges[:-1]
-        # for left, count, total_counts in zip(bin_lefts, true_preds, total_counts_per_bin):
-        #     green_height = count
-        #     red_height = total_counts - green_height
-        #     ax.bar(left+0.5*bin_width, green_height, width=bin_width, color='green', alpha=0.5)
-        #     ax.bar(left+0.5*bin_width, red_height, width=bin_width, bottom=green_height, color='red', alpha=0.5)
         ax.set_ylabel("Count")
         ax.set_xlabel("Confidence")
         # ax.text(0.5, 0.7, f"Ground Truth", fontsize=30, ha='center', va='center', transform=ax.transAxes)
@@ -145,6 +102,7 @@ def run_simulation():
         bin_accuracy = np.nan_to_num(bin_pos_label / bin_counts)
         bin_confidence = np.nan_to_num(bin_confidence / bin_counts)
         ece = np.sum(bin_counts*np.abs(bin_accuracy - bin_confidence))/np.sum(bin_counts)
+        ece_values.append(ece)
 
         ax.bar(bin_centers, bin_accuracy, width=1/num_bins, color='blue', label='Freq', alpha=0.7)
         for acc, diag in zip(bin_accuracy, bin_centers):
@@ -153,7 +111,7 @@ def run_simulation():
             else:
                 ax.bar(diag, acc-diag, bottom=diag, width=1/num_bins, color='red', alpha=0.2, hatch='/')
         ax.plot([0, 1], [0, 1], 'r--', label='Perfect calibration')
-        ax.text(0.8, 0.05, f'ECE={ece:.3f} \n rbs={rbs:.3f}', bbox=dict(facecolor='grey', alpha=0.8, boxstyle='round', edgecolor='black'))
+        ax.text(0.8, 0.05, f'ECE={ece:.3f}', bbox=dict(facecolor='grey', alpha=0.8, boxstyle='round', edgecolor='black'))
         # Text amount of samples in each bin
         # for i, txt in enumerate(bin_counts):
         #     plt.text(bin_centers[i], bin_accuracy[i]/2, f'{txt:.0f}', ha='center', va='bottom')
@@ -190,16 +148,16 @@ def run_simulation():
     x = np.linspace(0, 100, 100)
     y = x
     with plt.style.context('/storage/homefs/tf24s166/code/BME_viz/data/plot_style.txt'):  # Use the custom style
-        fig, axs = plt.subplots(1, 1, figsize=(10, 10), layout='constrained', sharey=True)    
-        if axs is not np.ndarray:
-            axs = [axs]
+        fig, axs = plt.subplots(2, 1, figsize=(12, 18), layout='constrained', sharey=False)    
+        # if axs is not np.ndarray:
+        #     axs = [axs]
 
-        for ax in axs:
-            ax.set_xlim(0, 1)
-            ax.set_ylim(0, 1)
-            ax.set_xlabel("Realized")
-            ax.set_ylabel("Estimated")
-            ax.plot(x, y, label="y = x", linestyle="--", color="gray")
+        
+        axs[0].set_xlim(0, 1)
+        axs[0].set_ylim(0, 1)
+        axs[0].set_xlabel("Realized")
+        axs[0].set_ylabel("Estimated")
+        axs[0].plot(x, y, label="y = x", linestyle="--", color="gray")
 
         colors = ['blue', 'orange', 'green', 'red']
         for i, metric in enumerate(realized_metrics.keys()):
@@ -216,6 +174,16 @@ def run_simulation():
             # handleheight=2,  # Adjust the height of the legend handles
             frameon=False)
 
+
+        axs[1].scatter(accumulated_points, ece_values, s=700, c='k', alpha=0.5)
+        axs[1].scatter(slider_value/100, ece, s=700, c='k', edgecolors='r', linewidths=2)
+        axs[1].set_xlim(-0.1, 1.1)
+        axs[1].set_ylabel("ECE")
+        axs[1].set_xlabel("I.D. Ratio")
+
+
+
+
         fig.savefig("static/img/accumulated.png")
         plt.close()
 
@@ -230,20 +198,39 @@ def reset_accumulated():
     all_realized_metrics = {'accuracy': [], 'auc': [], 'f1_score': [], 'recall': []}
     global all_estimated_metrics
     all_estimated_metrics = {'accuracy': [], 'auc': [], 'f1_score': [], 'recall': []}
+    global ece_values
+    ece_values = []
     # Recreate base plot
     x = np.linspace(0, 10, 100)
     y = x
     with plt.style.context('/storage/homefs/tf24s166/code/BME_viz/data/plot_style.txt'):  # Use the custom style
-        fig, axs = plt.subplots(1, 1, figsize=(10, 10), layout='constrained', sharey=True)    
-        if axs is not np.ndarray:
-            axs = [axs]
+        fig, axs = plt.subplots(2, 1, figsize=(12, 18), layout='constrained', sharey=False)    
+        # if axs is not np.ndarray:
+        #     axs = [axs]
 
-        for ax in axs:
-            ax.set_xlim(0, 1)
-            ax.set_ylim(0, 1)
-            ax.set_xlabel("Realized")
-            ax.set_ylabel("Estimated")
-            ax.plot(x, y, label="y = x", linestyle="--", color="gray")
+        
+        axs[0].set_xlim(0, 1)
+        axs[0].set_ylim(0, 1)
+        axs[0].set_xlabel("Realized")
+        axs[0].set_ylabel("Estimated")
+        x = np.linspace(0, 100, 100)
+        y = x
+        axs[0].plot(x, y, label="y = x", linestyle="--", color="gray")
+
+        handles = [mlines.Line2D([], [], color='blue', marker='o', markersize=15, linestyle='None', label='Realized Accuracy'),
+                    mlines.Line2D([], [], color='orange', marker='o', markersize=15, linestyle='None', label='Realized AUC'),
+                    mlines.Line2D([], [], color='green', marker='o', markersize=15, linestyle='None', label='Realized F1 Score'),
+                    mlines.Line2D([], [], color='red', marker='o', markersize=15,linestyle='None', label='Realized Recall')]
+        labels = ['Accuracy', 'AUC', 'F1 Score', 'Recall']
+        fig.legend(handles, labels, loc="upper left", ncols=1, bbox_to_anchor=(0.1, 1),
+            columnspacing=1,  # Adjust the spacing between columns
+            handlelength=2,  # Adjust the length of the legend handles
+            # handleheight=2,  # Adjust the height of the legend handles
+            frameon=False)
+
+        axs[1].set_xlim(-0.1, 1.1)
+        axs[1].set_ylabel("ECE")
+        axs[1].set_xlabel("I.D. Ratio")
 
         fig.savefig("static/img/accumulated.png")
         plt.close()
@@ -253,20 +240,36 @@ def reset_accumulated():
 
 if __name__ == "__main__":
     # initialize empty accumulated plot
-    plt.figure()
     x = np.linspace(0, 10, 100)
     y = x
     with plt.style.context('/storage/homefs/tf24s166/code/BME_viz/data/plot_style.txt'):  # Use the custom style
-        fig, axs = plt.subplots(1, 1, figsize=(10, 10), layout='constrained', sharey=True)    
-        if axs is not np.ndarray:
-            axs = [axs]
+        fig, axs = plt.subplots(2, 1, figsize=(12, 18), layout='constrained', sharey=False)    
+        # if axs is not np.ndarray:
+        #     axs = [axs]
 
-        for ax in axs:
-            ax.set_xlim(0, 1)
-            ax.set_ylim(0, 1)
-            ax.set_xlabel("Realized")
-            ax.set_ylabel("Estimated")
-            ax.plot(x, y, label="y = x", linestyle="--", color="gray")
+        
+        axs[0].set_xlim(0, 1)
+        axs[0].set_ylim(0, 1)
+        axs[0].set_xlabel("Realized")
+        axs[0].set_ylabel("Estimated")
+        x = np.linspace(0, 100, 100)
+        y = x
+        axs[0].plot(x, y, label="y = x", linestyle="--", color="gray")
+
+        handles = [mlines.Line2D([], [], color='blue', marker='o', markersize=15, linestyle='None', label='Realized Accuracy'),
+                    mlines.Line2D([], [], color='orange', marker='o', markersize=15, linestyle='None', label='Realized AUC'),
+                    mlines.Line2D([], [], color='green', marker='o', markersize=15, linestyle='None', label='Realized F1 Score'),
+                    mlines.Line2D([], [], color='red', marker='o', markersize=15,linestyle='None', label='Realized Recall')]
+        labels = ['Accuracy', 'AUC', 'F1 Score', 'Recall']
+        fig.legend(handles, labels, loc="upper left", ncols=1, bbox_to_anchor=(0.1, 1),
+            columnspacing=1,  # Adjust the spacing between columns
+            handlelength=2,  # Adjust the length of the legend handles
+            # handleheight=2,  # Adjust the height of the legend handles
+            frameon=False)
+
+        axs[1].set_xlim(-0.1, 1.1)
+        axs[1].set_ylabel("ECE")
+        axs[1].set_xlabel("I.D. Ratio")
 
         fig.savefig("static/img/accumulated.png")
         plt.close()
